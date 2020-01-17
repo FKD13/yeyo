@@ -29,7 +29,7 @@ opt :: Parser String -> Parser String
 opt = (<|>) (return "")
 
 separation :: Parser String
-separation = ((opt whitespace >> eol) <|> (whitespace >> opt eol)) >> separation
+separation = many $ token '\n' <|> token '\r' <|> token ' ' <|> token '\t'
 
 encapsulate :: Parser a -> Parser a
 encapsulate a = do _ <- token '(' >> opt whitespace
@@ -39,15 +39,15 @@ encapsulate a = do _ <- token '(' >> opt whitespace
 ----------------------------
 
 parseProgram :: Parser Program
-parseProgram = do _ <- token '[' >> opt whitespace >> opt eol >> opt whitespace
+parseProgram = do _ <- separation >> token '[' >> separation
                   e <- many parseExpression
                   e2 <- parseLastExpression
-                  _ <- opt whitespace >> opt eol >> opt whitespace >> token ']' >> opt whitespace >> opt eol >> opt whitespace
+                  _ <- separation >> token ']' >> separation
                   return $ e++[e2]
 
 parseExpression :: Parser Expression
 parseExpression = do e <- parseSingleExpression
-                     _ <- opt whitespace >> token ',' >> opt whitespace >> opt eol >> opt whitespace
+                     _ <- opt whitespace >> token ',' >> separation
                      return e
 
 parseLastExpression :: Parser Expression
@@ -59,6 +59,7 @@ parseSingleExpression = parseSet <|> parseUnset <|> parseAsk <|> parseSay
 parseSet :: Parser Expression
 parseSet = do _ <- exact "SET" >> whitespace
               v <- parseVariable
+              _ <- opt whitespace
               SetExpr v <$> parseValue
 
 parseUnset :: Parser Expression
@@ -79,6 +80,11 @@ parseIf = do _ <- exact "IF" >> whitespace
              p1 <- parseProgram
              _ <- token '-'
              IfExpr e p1 <$> parseProgram
+
+parseWhile :: Parser Expression
+parseWhile = do _ <- exact "ELSE" >> whitespace
+                e <- parseValue
+                WhileExpr e <$> parseProgram
 
 parseVariable :: Parser Value
 parseVariable = do _ <- token '<'

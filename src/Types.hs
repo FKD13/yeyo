@@ -2,6 +2,8 @@ module Types(Expression(..), Value(..), Program) where
 
 type Program = [Expression]
 
+--TODO Add, Mult, Sub should be Expressions
+
 data Expression = SetExpr Value Value
                 | EmptyExpr
                 | UnsetExpr Value
